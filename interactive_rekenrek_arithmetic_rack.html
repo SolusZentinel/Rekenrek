@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interactive Rekenrek — White Rose Maths Style</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background-color: #f4f6f9;
+      color: #1e293b;
+      overflow-x: hidden;
+    }
+
+    /* Warm Beechwood Frame with subtle realistic wood grain & bevels */
+    .wood-frame {
+      background:
+        repeating-linear-gradient(
+          90deg,
+          rgba(120, 53, 15, 0.04) 0px,
+          rgba(120, 53, 15, 0.04) 2px,
+          transparent 2px,
+          transparent 9px
+        ),
+        linear-gradient(180deg, #deb887 0%, #cfa167 50%, #bc8a4e 100%);
+      border: 3px solid #8c5a2b;
+      box-shadow:
+        0 18px 38px -10px rgba(15, 23, 42, 0.22),
+        0 4px 10px rgba(15, 23, 42, 0.08),
+        inset 0 2px 3px rgba(255, 255, 255, 0.55),
+        inset 0 -3px 5px rgba(92, 51, 23, 0.35);
+    }
+
+    /* Inner recessed wooden side posts */
+    .wood-post-left {
+      background: linear-gradient(90deg, #b88448 0%, #d9ae78 65%, #9e6b34 100%);
+      box-shadow: inset -2px 0 4px rgba(69, 39, 13, 0.35);
+    }
+
+    .wood-post-right {
+      background: linear-gradient(270deg, #b88448 0%, #d9ae78 65%, #9e6b34 100%);
+      box-shadow: inset 2px 0 4px rgba(69, 39, 13, 0.35);
+    }
+
+    /* Brushed steel horizontal rod */
+    .metal-rod {
+      background: linear-gradient(
+        180deg,
+        #64748b 0%,
+        #cbd5e1 28%,
+        #f8fafc 48%,
+        #94a3b8 72%,
+        #475569 100%
+      );
+      box-shadow: 0 2px 3px rgba(15, 23, 42, 0.25);
+    }
+
+    /* Tactile 3D Glossy Rekenrek Bead */
+    .rekenrek-bead {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      border-radius: 42% / 50%;
+      cursor: grab;
+      transition: left 0.24s cubic-bezier(0.22, 1, 0.36, 1), transform 0.12s ease, box-shadow 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      z-index: 10;
+    }
+
+    .rekenrek-bead.is-dragging {
+      transition: none !important;
+      cursor: grabbing;
+      z-index: 25;
+      transform: translateY(-50%) scale(1.06);
+    }
+
+    .rekenrek-bead:hover:not(.is-dragging) {
+      transform: translateY(-50%) scale(1.05);
+      z-index: 20;
+    }
+
+    /* Specular glass/enamel sheen on each bead */
+    .rekenrek-bead::before {
+      content: '';
+      position: absolute;
+      top: 13%;
+      left: 18%;
+      width: 44%;
+      height: 24%;
+      border-radius: 9999px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.05));
+      pointer-events: none;
+    }
+
+    /* Center rod hole shadow cues on left/right edges of bead */
+    .rekenrek-bead::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      box-shadow:
+        inset 0 -4px 6px rgba(0, 0, 0, 0.28),
+        inset 0 2px 3px rgba(255, 255, 255, 0.45),
+        0 4px 7px rgba(15, 23, 42, 0.32);
+      pointer-events: none;
+    }
+
+    /* Bead Color Palettes */
+    .bead-red {
+      background: radial-gradient(circle at 35% 30%, #ff6b6b 0%, #e11d48 55%, #9f1239 100%);
+      color: #ffffff;
+      border: 1.5px solid #881337;
+    }
+
+    .bead-white {
+      background: radial-gradient(circle at 35% 30%, #ffffff 0%, #f8fafc 58%, #cbd5e1 100%);
+      color: #1e293b;
+      border: 1.5px solid #94a3b8;
+    }
+
+    .bead-yellow {
+      background: radial-gradient(circle at 35% 30%, #fef08a 0%, #facc15 58%, #ca8a04 100%);
+      color: #1e293b;
+      border: 1.5px solid #a16207;
+    }
+
+    .bead-blue {
+      background: radial-gradient(circle at 35% 30%, #7dd3fc 0%, #0284c7 58%, #075985 100%);
+      color: #ffffff;
+      border: 1.5px solid #0c4a6e;
+    }
+
+    .bead-orange {
+      background: radial-gradient(circle at 35% 30%, #fed7aa 0%, #f97316 58%, #c2410c 100%);
+      color: #ffffff;
+      border: 1.5px solid #9a3412;
+    }
+
+    /* Draggable Classroom Privacy Cover / Curtain */
+    .cover-curtain {
+      background:
+        repeating-linear-gradient(
+          -45deg,
+          rgba(30, 41, 59, 0.96),
+          rgba(30, 41, 59, 0.96) 12px,
+          rgba(51, 65, 85, 0.96) 12px,
+          rgba(51, 65, 85, 0.96) 24px
+        );
+      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.38);
+      backdrop-filter: blur(4px);
+    }
+
+    /* Subtle pulse for Flash Mode */
+    @keyframes flashRing {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5); }
+      50% { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
+    }
+    .animate-flash-ring {
+      animation: flashRing 1.2s infinite;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- TOP NAVIGATION & CLASSROOM CONTROLS -->
+  <header class="bg-white border-b border-slate-200 shadow-2xs sticky top-0 z-40">
+    <div class="max-w-[1640px] mx-auto px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2.5">
+      
+      <!-- Brand / Title -->
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-rose-600 via-rose-500 to-amber-400 flex items-center justify-center text-white font-black text-base shadow-xs border border-rose-700/20">
+          RK
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-extrabold text-slate-800 tracking-tight leading-tight">
+            Interactive Rekenrek
+          </h1>
+          <p class="text-[11px] font-medium text-slate-500 hidden md:block">
+            Arithmetic Rack • White Rose Maths Style
+          </p>
+        </div>
+      </div>
+
+      <!-- Row Configuration Selector (1, 2, 5, 10 Rows) -->
+      <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200" role="group" aria-label="Number of Rods">
+        <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 px-2 hidden lg:inline">Rods:</span>
+        <button id="btnRows-1" onclick="setRowCount(1)" class="row-btn px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
+          1 Row (10)
+        </button>
+        <button id="btnRows-2" onclick="setRowCount(2)" class="row-btn px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-slate-800 shadow-2xs">
+          2 Rows (20)
+        </button>
+        <button id="btnRows-5" onclick="setRowCount(5)" class="row-btn px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
+          5 Rows (50)
+        </button>
+        <button id="btnRows-10" onclick="setRowCount(10)" class="row-btn px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900">
+          10 Rows (100)
+        </button>
+      </div>
+
+      <!-- Right Global Controls: Theme, Numbers, Cover Shade, Pen, Sound, Reset -->
+      <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+        
+        <!-- Bead Color Scheme Toggle -->
+        <button
+          id="btnColorTheme"
+          onclick="cycleColorTheme()"
+          title="Switch 5-and-5 bead color palette"
+          class="px-2.5 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition"
+        >
+          <span id="swatchLeft" class="w-3 h-3 rounded-full bg-rose-600 inline-block"></span>
+          <span id="swatchRight" class="w-3 h-3 rounded-full bg-white border border-slate-400 inline-block"></span>
+          <span id="labelColorTheme" class="hidden sm:inline">Red / White</span>
+        </button>
+
+        <!-- Show Bead Numbers Toggle -->
+        <button
+          id="btnBeadNumbers"
+          onclick="toggleBeadNumbers()"
+          title="Show or hide numbers on beads"
+          class="px-2.5 py-2 rounded-xl bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 text-xs font-bold transition"
+        >
+          123 Off
+        </button>
+
+        <!-- Classroom Cover / Curtain Toggle -->
+        <div class="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-300">
+          <button
+            id="btnCoverRight"
+            onclick="toggleCover('right')"
+            title="Cover inactive beads on the right to practice 'How many are hidden?'"
+            class="px-2.5 py-1.5 rounded-lg text-xs font-bold text-slate-700 hover:bg-white transition flex items-center gap-1"
+          >
+            <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+            </svg>
+            <span>Cover Right</span>
+          </button>
+          <button
+            id="btnCoverLeft"
+            onclick="toggleCover('left')"
+            title="Cover active beads on the left"
+            class="px-2.5 py-1.5 rounded-lg text-xs font-bold text-slate-700 hover:bg-white transition"
+          >
+            Cover Left
+          </button>
+        </div>
+
+        <!-- Whiteboard Pen Overlay Controls -->
+        <div class="flex items-center gap-1 bg-white p-1 rounded-xl border border-slate-300">
+          <button
+            id="btnPenTool"
+            onclick="togglePenMode()"
+            class="px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 text-slate-700 hover:bg-slate-100 transition"
+            title="Draw circles around groups of 5 or annotate number bonds"
+          >
+            <svg class="w-3.5 h-3.5 text-rose-600" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+            </svg>
+            <span id="penBtnLabel">Pen</span>
+          </button>
+          <div id="penPalette" class="hidden items-center gap-1 pl-1 border-l border-slate-200">
+            <button onclick="setPenColor('#e11d48')" class="w-4 h-4 rounded-full bg-rose-600 ring-2 ring-offset-1 ring-slate-400" title="Red Pen"></button>
+            <button onclick="setPenColor('#0284c7')" class="w-4 h-4 rounded-full bg-sky-600" title="Blue Pen"></button>
+            <button onclick="setPenColor('#059669')" class="w-4 h-4 rounded-full bg-emerald-600" title="Green Pen"></button>
+            <button onclick="toggleEraser()" id="btnPenEraser" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 hover:bg-slate-200">Eraser</button>
+            <button onclick="clearInk()" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 hover:bg-rose-100">Clear</button>
+          </div>
+        </div>
+
+        <!-- Sound Toggle -->
+        <button
+          onclick="toggleSound()"
+          title="Toggle Wooden Bead Click Sound"
+          class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition"
+        >
+          <svg id="iconSoundOn" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
+          </svg>
+          <svg id="iconSoundOff" class="w-4 h-4 hidden text-slate-400" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 9.75L19.5 12m0 0l2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" />
+          </svg>
+        </button>
+
+        <!-- Reset All Right -->
+        <button
+          onclick="resetAllRight()"
+          title="Slide all beads back to starting position (right)"
+          class="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-95 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1.5 transition"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+          </svg>
+          <span>Reset</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- QUICK-SET & SUBITIZING CHALLENGE RIBBON -->
+    <div class="bg-slate-50 border-t border-slate-200/80 px-3 sm:px-6 py-2">
+      <div class="max-w-[1640px] mx-auto flex flex-wrap items-center justify-between gap-2">
+        
+        <!-- Left: Quick Mathematical Patterns -->
+        <div class="flex flex-wrap items-center gap-1.5">
+          <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mr-1 hidden sm:inline">
+            Quick Set:
+          </span>
+          <button
+            onclick="resetAllRight()"
+            class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 border border-slate-300 text-xs font-bold text-slate-700 transition"
+          >
+            0 (All Right)
+          </button>
+          <button
+            onclick="setAllLeft()"
+            class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 border border-slate-300 text-xs font-bold text-slate-700 transition"
+          >
+            All Left
+          </button>
+          <button
+            onclick="presetMakeTen()"
+            class="px-2.5 py-1 rounded-lg bg-white hover:bg-sky-50 hover:text-sky-700 border border-slate-300 text-xs font-bold text-slate-700 transition"
+          >
+            Make 10
+          </button>
+          <button
+            onclick="presetDoubles()"
+            class="px-2.5 py-1 rounded-lg bg-white hover:bg-emerald-50 hover:text-emerald-700 border border-slate-300 text-xs font-bold text-slate-700 transition"
+          >
+            Doubles
+          </button>
+          <button
+            onclick="presetNearDoubles()"
+            class="px-2.5 py-1 rounded-lg bg-white hover:bg-purple-50 hover:text-purple-700 border border-slate-300 text-xs font-bold text-slate-700 transition"
+          >
+            Near Doubles
+          </button>
+        </div>
+
+        <!-- Right: Random Generator & 2-Second Subitizing Flash Mode -->
+        <div class="flex flex-wrap items-center gap-2">
+          <button
+            onclick="generateRandomBeads(false)"
+            class="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 active:scale-95 text-indigo-700 border border-indigo-200 text-xs font-bold flex items-center gap-1.5 transition"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12c0-1.232-.046-2.453-.138-3.662a4.006 4.006 0 00-3.7-3.7 48.678 48.678 0 00-7.324 0 4.006 4.006 0 00-3.7 3.7c-.017.22-.032.441-.046.662M19.5 12l3-3m-3 3l-3-3m-12 3c0 1.232.046 2.453.138 3.662a4.006 4.006 0 003.7 3.7 48.656 48.656 0 007.324 0 4.006 4.006 0 003.7-3.7c.017-.22.032-.441.046-.662M4.5 12l3 3m-3-3l-3 3" />
+            </svg>
+            <span>Random</span>
+          </button>
+
+          <button
+            id="btnFlashMode"
+            onclick="triggerSubitizingFlash()"
+            title="Show a random arrangement for 2.5 seconds, then cover it for subitizing!"
+            class="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-500 active:scale-95 text-slate-950 border border-amber-500 text-xs font-extrabold flex items-center gap-1.5 shadow-2xs transition"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+            </svg>
+            <span id="flashBtnLabel">2s Subitizing Flash</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE: WOODEN REKENREK FRAME -->
+  <main class="flex-1 flex flex-col justify-between max-w-[1640px] w-full mx-auto px-3 sm:px-6 py-4 gap-4">
+
+    <!-- Centerpiece Rekenrek Stage -->
+    <div id="stageWrapper" class="relative flex-1 flex items-center justify-center min-h-[340px]">
+      
+      <!-- Whiteboard Annotation Canvas Overlay -->
+      <canvas
+        id="inkCanvas"
+        class="absolute inset-0 w-full h-full z-30 pointer-events-none touch-none rounded-2xl"
+      ></canvas>
+
+      <!-- Pen Mode Floating Pill -->
+      <div
+        id="penModeBanner"
+        class="hidden absolute top-2 right-2 z-40 bg-rose-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md flex items-center gap-2"
+      >
+        <span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
+        <span>Pen Active — Circle groups of 5 or annotate</span>
+        <button onclick="togglePenMode()" class="underline ml-1 hover:text-rose-100">Done</button>
+      </div>
+
+      <!-- Beechwood Rekenrek Frame -->
+      <div
+        id="rekenrekFrame"
+        class="wood-frame relative w-full max-w-[1220px] rounded-2xl sm:rounded-3xl p-2.5 sm:p-4 flex flex-col justify-center overflow-hidden"
+      >
+        <!-- Left & Right Inner Wooden Uprights -->
+        <div class="relative w-full bg-white/95 rounded-xl sm:rounded-2xl border-2 border-[#8c5a2b] shadow-inner flex items-stretch overflow-hidden">
+          
+          <!-- Left Upright Post -->
+          <div class="wood-post-left w-4 sm:w-6 shrink-0 border-r border-[#8c5a2b]/60 flex flex-col justify-around items-center py-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#6b421c]/50"></span>
+            <span class="w-1.5 h-1.5 rounded-full bg-[#6b421c]/50"></span>
+          </div>
+
+          <!-- Rods Container -->
+          <div id="rodsContainer" class="relative flex-1 flex flex-col justify-evenly py-2 sm:py-3">
+            <!-- Horizontal Rods & Beads injected dynamically here -->
+          </div>
+
+          <!-- Draggable / Toggleable Classroom Cover Curtain -->
+          <div
+            id="coverCurtain"
+            class="hidden cover-curtain absolute top-0 bottom-0 z-20 flex items-center justify-center border-amber-400 transition-[width] duration-200"
+          >
+            <!-- Curtain Drag Handle & Label -->
+            <div
+              id="coverDragHandle"
+              title="Drag edge to resize cover screen"
+              class="absolute top-0 bottom-0 w-6 cursor-ew-resize flex items-center justify-center group"
+            >
+              <div class="w-1.5 h-14 rounded-full bg-amber-400 group-hover:scale-125 transition shadow"></div>
+            </div>
+
+            <div class="px-4 py-2 rounded-2xl bg-slate-900/90 border border-slate-600 text-center shadow-lg pointer-events-auto">
+              <div class="text-amber-400 font-black text-xs sm:text-sm uppercase tracking-wider">
+                Hidden Beads
+              </div>
+              <div class="text-slate-300 text-[11px] font-medium mt-0.5 hidden sm:block">
+                Drag edge or click Reveal
+              </div>
+              <button
+                onclick="hideCover()"
+                class="mt-2 px-3 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-extrabold text-xs transition cursor-pointer"
+              >
+                Reveal
+              </button>
+            </div>
+          </div>
+
+          <!-- Right Upright Post -->
+          <div class="wood-post-right w-4 sm:w-6 shrink-0 border-l border-[#8c5a2b]/60 flex flex-col justify-around items-center py-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#6b421c]/50"></span>
+            <span class="w-1.5 h-1.5 rounded-full bg-[#6b421c]/50"></span>
+          </div>
+
+        </div>
+
+        <!-- Subtle Frame Direction Labels (Active Left vs Starting Right) -->
+        <div class="flex items-center justify-between px-4 pt-1.5 text-[11px] font-extrabold uppercase tracking-wider text-[#5c3716]/80">
+          <div class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-700"></span>
+            <span>Counted / Active (Left)</span>
+          </div>
+          <div class="hidden sm:block text-[10px] font-bold opacity-75">
+            Click or drag any bead to slide groups
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span>Resting (Right)</span>
+            <span class="w-2 h-2 rounded-full bg-[#7c4d21]/50"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM TEACHING & NUMBER BREAKDOWN DOCK -->
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-xs p-3 sm:px-5 sm:py-3.5 flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- Left: Show/Hide Total Eye Button & Main Total Readout -->
+      <div class="flex flex-wrap items-center gap-3">
+        <button
+          id="btnToggleTotal"
+          onclick="toggleShowTotal()"
+          class="px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-300 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition"
+        >
+          <svg id="iconEyeOpen" class="w-4 h-4 text-sky-600" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <svg id="iconEyeClosed" class="w-4 h-4 text-amber-600 hidden" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+          </svg>
+          <span id="labelToggleTotal">Hide Total</span>
+        </button>
+
+        <!-- Total Counter Badge -->
+        <div class="flex items-center gap-2.5 bg-slate-900 text-white px-4 py-1.5 rounded-xl shadow-2xs">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total:</span>
+          <span id="totalValueDisplay" class="text-xl sm:text-2xl font-black tabular-nums tracking-tight">
+            0
+          </span>
+        </div>
+
+        <!-- Dynamic Row / 5-Anchor / Tens & Ones Breakdown -->
+        <div id="breakdownContainer" class="flex flex-wrap items-center gap-2">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Right: Breakdown Mode Selector -->
+      <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <button
+          id="bdMode-rows"
+          onclick="setBreakdownMode('rows')"
+          class="bd-btn px-2.5 py-1 rounded-lg text-xs font-bold transition bg-white text-slate-800 shadow-2xs"
+        >
+          Row Equation
+        </button>
+        <button
+          id="bdMode-fiveAnchor"
+          onclick="setBreakdownMode('fiveAnchor')"
+          class="bd-btn px-2.5 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900"
+        >
+          5-Anchor Structure
+        </button>
+        <button
+          id="bdMode-bond"
+          onclick="setBreakdownMode('bond')"
+          class="bd-btn px-2.5 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900"
+        >
+          Number Bond
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Toast Notification -->
+  <div
+    id="toastBanner"
+    class="fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-xs sm:text-sm font-bold px-4 py-2 rounded-full shadow-lg opacity-0 pointer-events-none transition-opacity duration-300 z-50"
+  >
+    Notification
+  </div>
+
+  <script>
+    /**
+     * ============================================================================
+     * BEAD COLOR PALETTES (5-and-5 Subitizing Structure)
+     * ============================================================================
+     */
+    const COLOR_THEMES = [
+      { id: 'classic', name: 'Red / White', leftClass: 'bead-red', rightClass: 'bead-white', swatchL: 'bg-rose-600', swatchR: 'bg-white border border-slate-400' },
+      { id: 'ry', name: 'Red / Yellow', leftClass: 'bead-red', rightClass: 'bead-yellow', swatchL: 'bg-rose-600', swatchR: 'bg-amber-400' },
+      { id: 'bo', name: 'Blue / Orange', leftClass: 'bead-blue', rightClass: 'bead-orange', swatchL: 'bg-sky-600', swatchR: 'bg-orange-500' }
+    ];
+
+    /**
+     * ============================================================================
+     * APPLICATION STATE
+     * ============================================================================
+     */
+    const state = {
+      rowCount: 2, // 1, 2, 5, or 10 rods (10 beads per rod)
+      leftCounts: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // Number of beads pushed to the LEFT on each rod (0..10)
+      themeIndex: 0,
+      showBeadNumbers: false,
+      showTotal: true,
+      breakdownMode: 'rows', // 'rows' | 'fiveAnchor' | 'bond'
+      coverSide: null, // null | 'right' | 'left'
+      coverWidthPct: 52, // Percentage width of the cover curtain
+      soundEnabled: true,
+      penMode: false,
+      penColor: '#e11d48',
+      penEraser: false,
+      flashTimeout: null
+    };
+
+    /**
+     * ============================================================================
+     * WOODEN BEAD CLICK / CLACK SOUND SYNTHESIZER (Web Audio API)
+     * ============================================================================
+     */
+    let audioCtx = null;
+
+    function playBeadClack(beadsMoved = 1) {
+      if (!state.soundEnabled || beadsMoved <= 0) return;
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        const clicks = Math.min(beadsMoved, 4);
+        for (let i = 0; i < clicks; i++) {
+          const t = audioCtx.currentTime + i * 0.022;
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+
+          // Warm wooden percussive click
+          osc.type = 'triangle';
+          const baseFreq = 580 + Math.random() * 140;
+          osc.frequency.setValueAtTime(baseFreq, t);
+          osc.frequency.exponentialRampToValueAtTime(190, t + 0.032);
+
+          gain.gain.setValueAtTime(0.16, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.035);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(t);
+          osc.stop(t + 0.036);
+        }
+      } catch (e) {
+        // Ignore if audio context is blocked
+      }
+    }
+
+    function toggleSound() {
+      state.soundEnabled = !state.soundEnabled;
+      document.getElementById('iconSoundOn').classList.toggle('hidden', !state.soundEnabled);
+      document.getElementById('iconSoundOff').classList.toggle('hidden', state.soundEnabled);
+      if (state.soundEnabled) playBeadClack(1);
+    }
+
+    /**
+     * ============================================================================
+     * REKENREK CONFIGURATION & PRESET ACTIONS
+     * ============================================================================
+     */
+    function setRowCount(count) {
+      state.rowCount = count;
+      document.querySelectorAll('.row-btn').forEach(btn => {
+        btn.className = 'row-btn px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-600 hover:text-slate-900';
+      });
+      const active = document.getElementById(`btnRows-${count}`);
+      if (active) {
+        active.className = 'row-btn px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-white text-slate-800 shadow-2xs';
+      }
+      playBeadClack(1);
+      renderAll();
+    }
+
+    function cycleColorTheme() {
+      state.themeIndex = (state.themeIndex + 1) % COLOR_THEMES.length;
+      const theme = COLOR_THEMES[state.themeIndex];
+      document.getElementById('swatchLeft').className = `w-3 h-3 rounded-full ${theme.swatchL} inline-block`;
+      document.getElementById('swatchRight').className = `w-3 h-3 rounded-full ${theme.swatchR} inline-block`;
+      document.getElementById('labelColorTheme').textContent = theme.name;
+      playBeadClack(1);
+      renderRods();
+    }
+
+    function toggleBeadNumbers() {
+      state.showBeadNumbers = !state.showBeadNumbers;
+      const btn = document.getElementById('btnBeadNumbers');
+      btn.textContent = state.showBeadNumbers ? '123 On' : '123 Off';
+      btn.classList.toggle('bg-sky-600', state.showBeadNumbers);
+      btn.classList.toggle('text-white', state.showBeadNumbers);
+      btn.classList.toggle('border-sky-600', state.showBeadNumbers);
+      playBeadClack(1);
+      renderRods();
+    }
+
+    function toggleShowTotal() {
+      state.showTotal = !state.showTotal;
+      document.getElementById('iconEyeOpen').classList.toggle('hidden', !state.showTotal);
+      document.getElementById('iconEyeClosed').classList.toggle('hidden', state.showTotal);
+      document.getElementById('labelToggleTotal').textContent = state.showTotal ? 'Hide Total' : 'Show Total';
+      renderReadout();
+    }
+
+    function setBreakdownMode(mode) {
+      state.breakdownMode = mode;
+      document.querySelectorAll('.bd-btn').forEach(b => {
+        b.className = 'bd-btn px-2.5 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900';
+      });
+      const active = document.getElementById(`bdMode-${mode}`);
+      if (active) {
+        active.className = 'bd-btn px-2.5 py-1 rounded-lg text-xs font-bold transition bg-white text-slate-800 shadow-2xs';
+      }
+      renderReadout();
+    }
+
+    function resetAllRight() {
+      clearFlashTimer();
+      for (let i = 0; i < 10; i++) state.leftCounts[i] = 0;
+      playBeadClack(3);
+      renderAll();
+    }
+
+    function setAllLeft() {
+      clearFlashTimer();
+      for (let i = 0; i < state.rowCount; i++) state.leftCounts[i] = 10;
+      playBeadClack(3);
+      renderAll();
+    }
+
+    function presetMakeTen() {
+      clearFlashTimer();
+      for (let i = 0; i < 10; i++) state.leftCounts[i] = 0;
+      if (state.rowCount === 1) {
+        state.leftCounts[0] = 10;
+      } else {
+        // Split 10 across top and bottom rods (e.g., 7 + 3 or 6 + 4)
+        const top = Math.floor(Math.random() * 9) + 1; // 1..9
+        state.leftCounts[0] = top;
+        state.leftCounts[1] = 10 - top;
+      }
+      playBeadClack(3);
+      renderAll();
+    }
+
+    function presetDoubles() {
+      clearFlashTimer();
+      if (state.rowCount < 2) setRowCount(2);
+      for (let i = 0; i < 10; i++) state.leftCounts[i] = 0;
+      const n = Math.floor(Math.random() * 9) + 1; // 1..9
+      state.leftCounts[0] = n;
+      state.leftCounts[1] = n;
+      playBeadClack(3);
+      renderAll();
+      showToast(`Doubles: ${n} + ${n} = ${n * 2}`);
+    }
+
+    function presetNearDoubles() {
+      clearFlashTimer();
+      if (state.rowCount < 2) setRowCount(2);
+      for (let i = 0; i < 10; i++) state.leftCounts[i] = 0;
+      const n = Math.floor(Math.random() * 8) + 1; // 1..8
+      state.leftCounts[0] = n;
+      state.leftCounts[1] = n + 1;
+      playBeadClack(3);
+      renderAll();
+      showToast(`Near Doubles: ${n} + ${n + 1} = ${n * 2 + 1}`);
+    }
+
+    function generateRandomBeads(fromFlash = false) {
+      if (!fromFlash) clearFlashTimer();
+      for (let i = 0; i < 10; i++) state.leftCounts[i] = 0;
+
+      if (state.rowCount <= 2) {
+        for (let r = 0; r < state.rowCount; r++) {
+          state.leftCounts[r] = Math.floor(Math.random() * 11); // 0..10
+        }
+        // Avoid all zero
+        if (state.leftCounts.slice(0, state.rowCount).reduce((a, b) => a + b, 0) === 0) {
+          state.leftCounts[0] = Math.floor(Math.random() * 9) + 1;
+        }
+      } else {
+        // For 5-row (50) or 10-row (100), fill full tens from top down + partial ones row
+        const maxVal = state.rowCount * 10;
+        const target = Math.floor(Math.random() * (maxVal - 1)) + 1;
+        const fullRows = Math.floor(target / 10);
+        const rem = target % 10;
+        for (let r = 0; r < fullRows; r++) state.leftCounts[r] = 10;
+        if (fullRows < state.rowCount) state.leftCounts[fullRows] = rem;
+      }
+
+      playBeadClack(3);
+      renderAll();
+    }
+
+    /**
+     * 2-Second Subitizing Flash Mode:
+     * Reveals a random bead pattern for 2.5 seconds, then pulls the cover over it!
+     */
+    function triggerSubitizingFlash() {
+      clearFlashTimer();
+      hideCover(true);
+      if (state.showTotal) {
+        state.showTotal = false;
+        document.getElementById('iconEyeOpen').classList.add('hidden');
+        document.getElementById('iconEyeClosed').classList.remove('hidden');
+        document.getElementById('labelToggleTotal').textContent = 'Show Total';
+      }
+
+      generateRandomBeads(true);
+
+      const btn = document.getElementById('btnFlashMode');
+      const lbl = document.getElementById('flashBtnLabel');
+      btn.classList.add('animate-flash-ring');
+      lbl.textContent = 'Look closely... (2.5s)';
+
+      state.flashTimeout = setTimeout(() => {
+        btn.classList.remove('animate-flash-ring');
+        lbl.textContent = '2s Subitizing Flash';
+        state.coverSide = 'left';
+        state.coverWidthPct = 100;
+        renderCover();
+        playBeadClack(2);
+        showToast('How many beads did you see? Click Reveal to check!');
+      }, 2500);
+    }
+
+    function clearFlashTimer() {
+      if (state.flashTimeout) {
+        clearTimeout(state.flashTimeout);
+        state.flashTimeout = null;
+        document.getElementById('btnFlashMode').classList.remove('animate-flash-ring');
+        document.getElementById('flashBtnLabel').textContent = '2s Subitizing Flash';
+      }
+    }
+
+    /**
+     * ============================================================================
+     * CLASSROOM PRIVACY COVER / CURTAIN
+     * ============================================================================
+     */
+    function toggleCover(side) {
+      clearFlashTimer();
+      if (state.coverSide === side) {
+        hideCover();
+        return;
+      }
+      state.coverSide = side;
+      state.coverWidthPct = 52;
+      playBeadClack(1);
+      renderCover();
+    }
+
+    function hideCover(silent = false) {
+      state.coverSide = null;
+      if (!silent) playBeadClack(1);
+      renderCover();
+    }
+
+    function renderCover() {
+      const curtain = document.getElementById('coverCurtain');
+      const handle = document.getElementById('coverDragHandle');
+      const btnR = document.getElementById('btnCoverRight');
+      const btnL = document.getElementById('btnCoverLeft');
+
+      btnR.classList.toggle('bg-slate-800', state.coverSide === 'right');
+      btnR.classList.toggle('text-white', state.coverSide === 'right');
+      btnL.classList.toggle('bg-slate-800', state.coverSide === 'left');
+      btnL.classList.toggle('text-white', state.coverSide === 'left');
+
+      if (!state.coverSide) {
+        curtain.classList.add('hidden');
+        return;
+      }
+
+      curtain.classList.remove('hidden');
+      curtain.style.width = `${state.coverWidthPct}%`;
+
+      if (state.coverSide === 'right') {
+        curtain.style.left = 'auto';
+        curtain.style.right = '0';
+        curtain.style.borderLeftWidth = '4px';
+        curtain.style.borderRightWidth = '0px';
+        handle.style.left = '-10px';
+        handle.style.right = 'auto';
+      } else {
+        curtain.style.right = 'auto';
+        curtain.style.left = '0';
+        curtain.style.borderRightWidth = '4px';
+        curtain.style.borderLeftWidth = '0px';
+        handle.style.right = '-10px';
+        handle.style.left = 'auto';
+      }
+    }
+
+    // Dragging the Curtain Edge to resize how much is covered
+    (function setupCurtainDrag() {
+      const handle = document.getElementById('coverDragHandle');
+      const rodsBox = document.getElementById('rodsContainer');
+      let draggingCurtain = false;
+
+      function onStart(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        draggingCurtain = true;
+        document.getElementById('coverCurtain').style.transition = 'none';
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onEnd);
+        window.addEventListener('touchmove', onMove, { passive: false });
+        window.addEventListener('touchend', onEnd);
+      }
+
+      function onMove(e) {
+        if (!draggingCurtain || !state.coverSide) return;
+        if (e.cancelable) e.preventDefault();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const rect = rodsBox.parentElement.getBoundingClientRect();
+        const relX = clientX - rect.left;
+
+        let pct = 50;
+        if (state.coverSide === 'right') {
+          pct = ((rect.width - relX) / rect.width) * 100;
+        } else {
+          pct = (relX / rect.width) * 100;
+        }
+        state.coverWidthPct = Math.max(12, Math.min(100, pct));
+        document.getElementById('coverCurtain').style.width = `${state.coverWidthPct}%`;
+      }
+
+      function onEnd() {
+        draggingCurtain = false;
+        document.getElementById('coverCurtain').style.transition = '';
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onEnd);
+        window.removeEventListener('touchmove', onMove);
+        window.removeEventListener('touchend', onEnd);
+      }
+
+      handle.addEventListener('mousedown', onStart);
+      handle.addEventListener('touchstart', onStart, { passive: false });
+    })();
+
+    /**
+     * ============================================================================
+     * REKENREK BEAD GEOMETRY, GROUP CLICK & DRAG-TO-SLIDE PHYSICS
+     * ============================================================================
+     */
+    function computeRodGeometry(rodWidth) {
+      // Each rod holds 10 beads + a spacious center gap (approx 3.8 bead widths) so left vs right groups are unmistakable
+      // Total virtual slots = 13.8 bead widths
+      const slotFactor = 13.8;
+      const rawBeadW = rodWidth / slotFactor;
+      const beadW = Math.max(20, Math.min(54, rawBeadW));
+      const beadH = Math.round(beadW * 1.32);
+      const sidePad = Math.max(6, beadW * 0.2);
+      const totalBeadsW = beadW * 10;
+      const maxGap = Math.max(24, rodWidth - totalBeadsW - sidePad * 2);
+
+      return { beadW, beadH, sidePad, maxGap };
+    }
+
+    function getBeadRestingLeftPx(beadIdx, leftCount, geom) {
+      // Beads 0 .. leftCount-1 sit flush on the LEFT; beads leftCount .. 9 sit flush on the RIGHT
+      if (beadIdx < leftCount) {
+        return geom.sidePad + beadIdx * geom.beadW;
+      } else {
+        return geom.sidePad + geom.maxGap + beadIdx * geom.beadW;
+      }
+    }
+
+    /**
+     * Handle clicking bead `beadIdx` on rod `rowIdx`:
+     * - If bead is currently on the RIGHT (beadIdx >= leftCount), push it and all beads to its left across to the LEFT (new leftCount = beadIdx + 1).
+     * - If bead is currently on the LEFT (beadIdx < leftCount), push it and all beads to its right back to the RIGHT (new leftCount = beadIdx).
+     */
+    function handleBeadClick(rowIdx, beadIdx) {
+      const currentLeft = state.leftCounts[rowIdx];
+      let nextLeft = currentLeft;
+
+      if (beadIdx >= currentLeft) {
+        nextLeft = beadIdx + 1;
+      } else {
+        nextLeft = beadIdx;
+      }
+
+      const moved = Math.abs(nextLeft - currentLeft);
+      if (moved > 0) {
+        state.leftCounts[rowIdx] = nextLeft;
+        playBeadClack(moved);
+        renderAll();
+      }
+    }
+
+    /**
+     * Fluid Drag-to-Slide Physics on a Rod:
+     * Pushing a bead pushes all beads in front of it like physical beads on a steel wire!
+     */
+    function attachBeadDragHandlers(beadEl, rowIdx, beadIdx) {
+      function onPointerDown(e) {
+        if (state.penMode) return;
+        if (e.button !== undefined && e.button !== 0) return;
+        e.stopPropagation();
+
+        const rodEl = document.getElementById(`rod-track-${rowIdx}`);
+        if (!rodEl) return;
+
+        const rodRect = rodEl.getBoundingClientRect();
+        const geom = computeRodGeometry(rodRect.width);
+        const startClientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const initialLeftCount = state.leftCounts[rowIdx];
+        const initialBeadLeft = getBeadRestingLeftPx(beadIdx, initialLeftCount, geom);
+
+        let hasDragged = false;
+        let previewLeftCount = initialLeftCount;
+
+        const allBeadEls = Array.from(rodEl.querySelectorAll('.rekenrek-bead'));
+
+        function onPointerMove(moveEvt) {
+          const cx = moveEvt.touches ? moveEvt.touches[0].clientX : moveEvt.clientX;
+          const dx = cx - startClientX;
+          if (!hasDragged && Math.abs(dx) < 5) return;
+
+          if (!hasDragged) {
+            hasDragged = true;
+            allBeadEls.forEach(b => b.classList.add('is-dragging'));
+          }
+          if (moveEvt.cancelable) moveEvt.preventDefault();
+
+          // Constrain dragged bead within physical limits of neighboring beads on the rod
+          const minX = geom.sidePad + beadIdx * geom.beadW;
+          const maxX = geom.sidePad + geom.maxGap + beadIdx * geom.beadW;
+          const clampedBeadX = Math.max(minX, Math.min(maxX, initialBeadLeft + dx));
+
+          // Update positions of all 10 beads so they push each other naturally without overlapping
+          allBeadEls.forEach((bEl, idx) => {
+            let pos = getBeadRestingLeftPx(idx, initialLeftCount, geom);
+            if (idx === beadIdx) {
+              pos = clampedBeadX;
+            } else if (idx < beadIdx) {
+              // Beads to the left cannot pass (clampedBeadX - (beadIdx - idx)*beadW)
+              const maxAllowed = clampedBeadX - (beadIdx - idx) * geom.beadW;
+              pos = Math.min(pos, maxAllowed);
+            } else {
+              // Beads to the right cannot be overlapped by dragged bead
+              const minAllowed = clampedBeadX + (idx - beadIdx) * geom.beadW;
+              pos = Math.max(pos, minAllowed);
+            }
+            bEl.style.left = `${pos}px`;
+          });
+
+          // Determine snapping threshold for previewing live count
+          const midPoint = (minX + maxX) / 2;
+          if (clampedBeadX < midPoint) {
+            previewLeftCount = Math.max(initialLeftCount, beadIdx + 1);
+          } else {
+            previewLeftCount = Math.min(initialLeftCount, beadIdx);
+          }
+        }
+
+        function onPointerUp() {
+          window.removeEventListener('mousemove', onPointerMove);
+          window.removeEventListener('mouseup', onPointerUp);
+          window.removeEventListener('touchmove', onPointerMove);
+          window.removeEventListener('touchend', onPointerUp);
+
+          allBeadEls.forEach(b => b.classList.remove('is-dragging'));
+
+          if (!hasDragged) {
+            // Treat as a crisp tap/click
+            handleBeadClick(rowIdx, beadIdx);
+          } else {
+            const moved = Math.abs(previewLeftCount - initialLeftCount);
+            state.leftCounts[rowIdx] = previewLeftCount;
+            if (moved > 0) playBeadClack(moved);
+            renderAll();
+          }
+        }
+
+        window.addEventListener('mousemove', onPointerMove);
+        window.addEventListener('mouseup', onPointerUp);
+        window.addEventListener('touchmove', onPointerMove, { passive: false });
+        window.addEventListener('touchend', onPointerUp);
+      }
+
+      beadEl.addEventListener('mousedown', onPointerDown);
+      beadEl.addEventListener('touchstart', onPointerDown, { passive: false });
+    }
+
+    /**
+     * ============================================================================
+     * RENDERING THE RODS, BEADS & TEACHING READOUT
+     * ============================================================================
+     */
+    function renderAll() {
+      renderRods();
+      renderReadout();
+      renderCover();
+    }
+
+    function renderRods() {
+      const container = document.getElementById('rodsContainer');
+      const containerWidth = container.getBoundingClientRect().width || 800;
+      const geom = computeRodGeometry(containerWidth);
+      const theme = COLOR_THEMES[state.themeIndex];
+
+      // Adjust vertical row height gracefully for 1, 2, 5, or 10 rows
+      const rowHeightPx =
+        state.rowCount === 1
+          ? Math.max(96, geom.beadH + 40)
+          : state.rowCount === 2
+          ? Math.max(82, geom.beadH + 28)
+          : state.rowCount === 5
+          ? Math.max(54, geom.beadH + 14)
+          : Math.max(40, Math.min(48, geom.beadH + 8));
+
+      const effectiveBeadH = Math.min(geom.beadH, rowHeightPx - 8);
+      const effectiveBeadW = Math.min(geom.beadW, Math.round(effectiveBeadH * 0.78));
+      const adjustedGeom = computeRodGeometry(containerWidth);
+      adjustedGeom.beadW = effectiveBeadW;
+      adjustedGeom.beadH = effectiveBeadH;
+      adjustedGeom.maxGap = Math.max(20, containerWidth - effectiveBeadW * 10 - adjustedGeom.sidePad * 2);
+
+      container.innerHTML = '';
+
+      for (let r = 0; r < state.rowCount; r++) {
+        const leftCount = state.leftCounts[r];
+
+        const rowDiv = document.createElement('div');
+        rowDiv.id = `rod-track-${r}`;
+        rowDiv.style.height = `${rowHeightPx}px`;
+        rowDiv.className = 'relative w-full flex items-center';
+
+        // Brushed steel horizontal rod
+        const rodLine = document.createElement('div');
+        rodLine.className = 'metal-rod w-full h-[6px] sm:h-[7px] rounded-full';
+        rowDiv.appendChild(rodLine);
+
+        // Subtle midpoint tick on rod (shows 5-bead group boundary)
+        const midMarker = document.createElement('div');
+        midMarker.className = 'absolute left-1/2 -translate-x-1/2 w-[2px] h-3 bg-slate-400/50 rounded-full pointer-events-none';
+        rowDiv.appendChild(midMarker);
+
+        // Render 10 Beads (0..4 Left Color, 5..9 Right Color)
+        for (let b = 0; b < 10; b++) {
+          const beadEl = document.createElement('div');
+          const colorClass = b < 5 ? theme.leftClass : theme.rightClass;
+          const leftPx = getBeadRestingLeftPx(b, leftCount, adjustedGeom);
+
+          beadEl.className = `rekenrek-bead ${colorClass}`;
+          beadEl.style.width = `${adjustedGeom.beadW}px`;
+          beadEl.style.height = `${adjustedGeom.beadH}px`;
+          beadEl.style.left = `${leftPx}px`;
+          beadEl.style.fontSize = `${Math.max(10, Math.round(adjustedGeom.beadW * 0.36))}px`;
+
+          if (state.showBeadNumbers) {
+            const num = state.rowCount <= 2 ? b + 1 : r * 10 + (b + 1);
+            beadEl.textContent = num;
+          }
+
+          attachBeadDragHandlers(beadEl, r, b);
+          rowDiv.appendChild(beadEl);
+        }
+
+        container.appendChild(rowDiv);
+      }
+    }
+
+    function renderReadout() {
+      const totalEl = document.getElementById('totalValueDisplay');
+      const bdBox = document.getElementById('breakdownContainer');
+      bdBox.innerHTML = '';
+
+      const activeSlice = state.leftCounts.slice(0, state.rowCount);
+      const totalActive = activeSlice.reduce((sum, n) => sum + n, 0);
+      const maxCapacity = state.rowCount * 10;
+      const remainingRight = maxCapacity - totalActive;
+
+      if (!state.showTotal) {
+        totalEl.textContent = '?';
+        totalEl.classList.add('text-amber-400');
+        bdBox.innerHTML = `
+          <span class="px-3 py-1 rounded-xl bg-slate-100 text-slate-500 text-xs font-bold">
+            Total hidden — ask pupils to subitize or count!
+          </span>
+        `;
+        return;
+      }
+
+      totalEl.textContent = totalActive;
+      totalEl.classList.remove('text-amber-400');
+
+      if (state.breakdownMode === 'rows') {
+        // Row-by-Row Equation Breakdown
+        if (state.rowCount === 1) {
+          const n = activeSlice[0];
+          bdBox.innerHTML = `
+            <span class="px-3 py-1.5 rounded-xl bg-sky-50 border border-sky-200 text-sky-900 text-xs sm:text-sm font-extrabold tabular-nums">
+              ${n} active + ${10 - n} resting = 10
+            </span>
+          `;
+        } else if (state.rowCount === 2) {
+          const top = activeSlice[0];
+          const bot = activeSlice[1];
+          bdBox.innerHTML = `
+            <span class="px-3 py-1.5 rounded-xl bg-sky-50 border border-sky-200 text-sky-900 text-xs sm:text-sm font-extrabold tabular-nums">
+              Top: ${top} &nbsp;|&nbsp; Bottom: ${bot} &nbsp;→&nbsp; ${top} + ${bot} = ${totalActive}
+            </span>
+          `;
+        } else {
+          const tens = Math.floor(totalActive / 10);
+          const ones = totalActive % 10;
+          const nonZeroRows = activeSlice.filter(v => v > 0);
+          const sumExpr = nonZeroRows.length > 0 ? nonZeroRows.join(' + ') : '0';
+          bdBox.innerHTML = `
+            <span class="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs sm:text-sm font-extrabold tabular-nums">
+              ${tens} Ten${tens === 1 ? '' : 's'} + ${ones} One${ones === 1 ? '' : 's'} (${tens * 10} + ${ones} = ${totalActive})
+            </span>
+            <span class="px-2.5 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold tabular-nums hidden xl:inline">
+              Rows: ${sumExpr}
+            </span>
+          `;
+        }
+      } else if (state.breakdownMode === 'fiveAnchor') {
+        // 5-Anchor Subitizing Decomposition (e.g. 7 = 5 + 2)
+        const parts = activeSlice.slice(0, Math.min(state.rowCount, 4)).map((count, idx) => {
+          const fives = Math.min(5, count);
+          const extras = Math.max(0, count - 5);
+          const label = state.rowCount === 1 ? '' : `R${idx + 1}: `;
+          return `${label}${count} (${fives} + ${extras})`;
+        });
+        const suffix = state.rowCount > 4 ? ` ... Total = ${totalActive}` : '';
+        bdBox.innerHTML = `
+          <span class="px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs sm:text-sm font-extrabold tabular-nums">
+            5-Anchor: ${parts.join('  •  ')}${suffix}
+          </span>
+        `;
+      } else if (state.breakdownMode === 'bond') {
+        // Number Bond to 10 / 20 / 50 / 100
+        bdBox.innerHTML = `
+          <span class="px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-950 text-xs sm:text-sm font-extrabold tabular-nums">
+            Number Bond to ${maxCapacity}: &nbsp; <strong>${totalActive}</strong> (left) + <strong>${remainingRight}</strong> (right) = <strong>${maxCapacity}</strong>
+          </span>
+        `;
+      }
+    }
+
+    /**
+     * ============================================================================
+     * WHITEBOARD PEN & ERASER ANNOTATION OVERLAY
+     * ============================================================================
+     */
+    const inkCanvas = document.getElementById('inkCanvas');
+    const inkCtx = inkCanvas.getContext('2d');
+    let isDrawingInk = false;
+
+    function resizeInkCanvas() {
+      const stage = document.getElementById('stageWrapper');
+      if (!stage || !inkCanvas) return;
+      const temp = document.createElement('canvas');
+      temp.width = inkCanvas.width;
+      temp.height = inkCanvas.height;
+      if (temp.width > 0 && temp.height > 0) {
+        temp.getContext('2d').drawImage(inkCanvas, 0, 0);
+      }
+
+      const rect = stage.getBoundingClientRect();
+      inkCanvas.width = rect.width;
+      inkCanvas.height = rect.height;
+
+      if (temp.width > 0 && temp.height > 0) {
+        inkCtx.drawImage(temp, 0, 0);
+      }
+    }
+
+    function togglePenMode() {
+      state.penMode = !state.penMode;
+      state.penEraser = false;
+
+      const btn = document.getElementById('btnPenTool');
+      const label = document.getElementById('penBtnLabel');
+      const palette = document.getElementById('penPalette');
+      const banner = document.getElementById('penModeBanner');
+
+      if (state.penMode) {
+        inkCanvas.classList.remove('pointer-events-none');
+        inkCanvas.style.cursor = 'crosshair';
+        btn.classList.add('bg-rose-600', 'text-white');
+        btn.classList.remove('text-slate-700', 'hover:bg-slate-100');
+        label.textContent = 'Pen On';
+        palette.classList.remove('hidden');
+        palette.classList.add('flex');
+        banner.classList.remove('hidden');
+      } else {
+        inkCanvas.classList.add('pointer-events-none');
+        btn.classList.remove('bg-rose-600', 'text-white');
+        btn.classList.add('text-slate-700', 'hover:bg-slate-100');
+        label.textContent = 'Pen';
+        palette.classList.add('hidden');
+        palette.classList.remove('flex');
+        banner.classList.add('hidden');
+      }
+      playBeadClack(1);
+    }
+
+    function setPenColor(hex) {
+      state.penColor = hex;
+      state.penEraser = false;
+      document.getElementById('btnPenEraser').classList.remove('bg-slate-800', 'text-white');
+      playBeadClack(1);
+    }
+
+    function toggleEraser() {
+      state.penEraser = !state.penEraser;
+      const btn = document.getElementById('btnPenEraser');
+      btn.classList.toggle('bg-slate-800', state.penEraser);
+      btn.classList.toggle('text-white', state.penEraser);
+      playBeadClack(1);
+    }
+
+    function clearInk() {
+      inkCtx.clearRect(0, 0, inkCanvas.width, inkCanvas.height);
+      playBeadClack(1);
+    }
+
+    function getInkCoords(e) {
+      const rect = inkCanvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return { x: clientX - rect.left, y: clientY - rect.top };
+    }
+
+    inkCanvas.addEventListener('mousedown', (e) => {
+      if (!state.penMode) return;
+      isDrawingInk = true;
+      const { x, y } = getInkCoords(e);
+      inkCtx.beginPath();
+      inkCtx.moveTo(x, y);
+    });
+
+    inkCanvas.addEventListener('mousemove', (e) => {
+      if (!isDrawingInk || !state.penMode) return;
+      const { x, y } = getInkCoords(e);
+      inkCtx.lineCap = 'round';
+      inkCtx.lineJoin = 'round';
+      if (state.penEraser) {
+        inkCtx.globalCompositeOperation = 'destination-out';
+        inkCtx.lineWidth = 24;
+      } else {
+        inkCtx.globalCompositeOperation = 'source-over';
+        inkCtx.strokeStyle = state.penColor;
+        inkCtx.lineWidth = 3.5;
+      }
+      inkCtx.lineTo(x, y);
+      inkCtx.stroke();
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDrawingInk = false;
+    });
+
+    inkCanvas.addEventListener('touchstart', (e) => {
+      if (!state.penMode) return;
+      e.preventDefault();
+      isDrawingInk = true;
+      const { x, y } = getInkCoords(e);
+      inkCtx.beginPath();
+      inkCtx.moveTo(x, y);
+    }, { passive: false });
+
+    inkCanvas.addEventListener('touchmove', (e) => {
+      if (!isDrawingInk || !state.penMode) return;
+      e.preventDefault();
+      const { x, y } = getInkCoords(e);
+      inkCtx.lineCap = 'round';
+      inkCtx.lineJoin = 'round';
+      if (state.penEraser) {
+        inkCtx.globalCompositeOperation = 'destination-out';
+        inkCtx.lineWidth = 24;
+      } else {
+        inkCtx.globalCompositeOperation = 'source-over';
+        inkCtx.strokeStyle = state.penColor;
+        inkCtx.lineWidth = 3.5;
+      }
+      inkCtx.lineTo(x, y);
+      inkCtx.stroke();
+    }, { passive: false });
+
+    inkCanvas.addEventListener('touchend', () => {
+      isDrawingInk = false;
+    });
+
+    /**
+     * ============================================================================
+     * TOAST MESSAGE HELPER & BOOTSTRAP
+     * ============================================================================
+     */
+    let toastTimer = null;
+    function showToast(msg) {
+      const toast = document.getElementById('toastBanner');
+      toast.textContent = msg;
+      toast.classList.remove('opacity-0');
+      toast.classList.add('opacity-100');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0');
+      }, 2500);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      // Start with a welcoming 7 + 5 = 12 configuration on the 2-row Rekenrek
+      state.leftCounts[0] = 7;
+      state.leftCounts[1] = 5;
+      renderAll();
+      resizeInkCanvas();
+    });
+
+    window.addEventListener('resize', () => {
+      renderRods();
+      resizeInkCanvas();
+    });
+  </script>
+</body>
+</html>
